@@ -113,9 +113,24 @@ async function requestScan() {
       return;
     }
 
-    const result = await chrome.tabs.sendMessage(tab.id, {
-      type: "REQUEST_CLEARANCE_SCAN"
-    });
+    let result;
+    try {
+      result = await chrome.tabs.sendMessage(tab.id, {
+        type: "REQUEST_CLEARANCE_SCAN"
+      });
+    } catch {
+      await chrome.scripting.insertCSS({
+        target: { tabId: tab.id },
+        files: ["linkedin.css"]
+      });
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ["content.js"]
+      });
+      result = await chrome.tabs.sendMessage(tab.id, {
+        type: "REQUEST_CLEARANCE_SCAN"
+      });
+    }
     result ? renderResult(result) : setStatus("error");
   } catch (error) {
     console.error(error);

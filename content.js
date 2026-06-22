@@ -10,6 +10,10 @@
     ".jobs-description__content",
     ".jobs-box__html-content",
     ".jobs-description",
+    ".jobs-description__container",
+    "[data-job-details]",
+    "[data-view-name*='job-description']",
+    "[class*='jobs-description']",
     "#job-details",
     ".job-details-module"
   ];
@@ -17,13 +21,16 @@
   const TITLE_SELECTORS = [
     ".job-details-jobs-unified-top-card__job-title h1",
     ".jobs-unified-top-card__job-title",
+    "[data-view-name*='job-title']",
+    "a[href*='/jobs/view/'][aria-label] h1",
     "main h1"
   ];
 
   const COMPANY_SELECTORS = [
     ".job-details-jobs-unified-top-card__company-name",
     ".jobs-unified-top-card__company-name",
-    ".job-details-jobs-unified-top-card__primary-description-container a"
+    ".job-details-jobs-unified-top-card__primary-description-container a",
+    "[data-view-name*='job-company']"
   ];
 
   const ACTIVE_LISTING_SELECTORS = [
@@ -90,6 +97,7 @@
 
   let lastSignature = "";
   let scanTimer;
+  let lastUrl = location.href;
 
   function normalize(text) {
     return (text || "")
@@ -109,6 +117,17 @@
       if (text) return text;
     }
     return "";
+  }
+
+  function textFromBest(selectors) {
+    const candidates = [];
+    for (const selector of selectors) {
+      document.querySelectorAll(selector).forEach((element) => {
+        const text = normalize(element.innerText);
+        if (text.length >= 120) candidates.push(text);
+      });
+    }
+    return candidates.sort((left, right) => right.length - left.length)[0] || "";
   }
 
   function findMatches(text, patterns) {
@@ -189,9 +208,14 @@
   }
 
   function getJobDescription() {
-    const preferred = textFromFirst(DESCRIPTION_SELECTORS);
+    const preferred = textFromBest(DESCRIPTION_SELECTORS);
     if (preferred.length >= 120) return preferred;
-    const mainText = document.querySelector("main")?.innerText?.trim() || "";
+
+    const detailsRoot =
+      document.querySelector("[data-view-name*='job-details']") ||
+      document.querySelector("main article") ||
+      document.querySelector("main");
+    const mainText = normalize(detailsRoot?.innerText);
     return mainText.length >= 120 ? mainText : "";
   }
 
@@ -199,6 +223,16 @@
     for (const selector of ACTIVE_LISTING_SELECTORS) {
       const element = document.querySelector(selector);
       if (element) return element.closest("li") || element;
+    }
+
+    const jobId =
+      new URL(location.href).searchParams.get("currentJobId") ||
+      location.pathname.match(/\/jobs\/view\/(\d+)/)?.[1];
+    if (jobId) {
+      const jobLink = document.querySelector(
+        `a[href*="/jobs/view/${CSS.escape(jobId)}"]`
+      );
+      if (jobLink) return jobLink.closest("li") || jobLink;
     }
     return null;
   }
@@ -330,6 +364,14 @@
     scanTimer = setTimeout(() => runScan({ notify: true }), 700);
   }
 
+  function checkForNavigation() {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      lastSignature = "";
+      scheduleScan();
+    }
+  }
+
   function handleRuntimeMessage(message, sender, sendResponse) {
     if (message?.type === "REQUEST_CLEARANCE_SCAN") {
       sendResponse(runScan());
@@ -347,11 +389,17 @@
 
   chrome.runtime.onMessage.addListener(handleRuntimeMessage);
   window.addEventListener("popstate", scheduleScan);
+  window.addEventListener("hashchange", scheduleScan);
+  document.addEventListener("click", checkForNavigation, true);
+  const navigationTimer = setInterval(checkForNavigation, 500);
 
   globalThis.__linkedinClearanceCheckerCleanup = () => {
     clearTimeout(scanTimer);
     observer.disconnect();
     window.removeEventListener("popstate", scheduleScan);
+    window.removeEventListener("hashchange", scheduleScan);
+    document.removeEventListener("click", checkForNavigation, true);
+    clearInterval(navigationTimer);
     try {
       chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
     } catch {

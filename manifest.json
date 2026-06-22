@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Clearance Check",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Detects security clearance requirements in LinkedIn job listings.",
   "permissions": [
     "sidePanel",
-    "tabs"
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://www.linkedin.com/*"
