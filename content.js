@@ -14,6 +14,15 @@ const DESCRIPTION_SELECTORS = [
   ".job-details-module"
 ];
 
+const DETAIL_PANE_SELECTORS = [
+  ".jobs-search__job-details--container",
+  ".jobs-search__job-details",
+  ".scaffold-layout__detail",
+  ".job-view-layout",
+  "[data-view-name*='job-details']",
+  "#job-details"
+];
+
 const TITLE_SELECTORS = [
   ".job-details-jobs-unified-top-card__job-title h1",
   ".jobs-unified-top-card__job-title",
@@ -107,6 +116,38 @@ function textFromFirst(selectors) {
     }
   }
   return "";
+}
+
+function textFromFirstWithin(root, selectors) {
+  if (!root) {
+    return "";
+  }
+
+  for (const selector of selectors) {
+    const text = root.querySelector(selector)?.innerText?.trim();
+    if (text) {
+      return text;
+    }
+  }
+
+  return "";
+}
+
+function getDetailPane() {
+  for (const selector of DETAIL_PANE_SELECTORS) {
+    const candidates = [...document.querySelectorAll(selector)].filter(
+      (element) => normalize(element.innerText).length >= 120
+    );
+
+    if (candidates.length) {
+      return candidates.sort(
+        (left, right) =>
+          right.getBoundingClientRect().left - left.getBoundingClientRect().left
+      )[0];
+    }
+  }
+
+  return null;
 }
 
 function findActiveListingCard() {
@@ -221,13 +262,18 @@ function updateListingBadge(result) {
 }
 
 function getJobDescription() {
-  const preferred = textFromFirst(DESCRIPTION_SELECTORS);
+  const detailPane = getDetailPane();
+  if (!detailPane) {
+    return "";
+  }
+
+  const preferred = textFromFirstWithin(detailPane, DESCRIPTION_SELECTORS);
   if (preferred.length >= 120) {
     return preferred;
   }
 
-  const mainText = document.querySelector("main")?.innerText?.trim() || "";
-  return mainText.length >= 120 ? mainText : "";
+  const detailText = normalize(detailPane.innerText);
+  return detailText.length >= 120 ? detailText : "";
 }
 
 function normalize(text) {
@@ -318,9 +364,16 @@ function analyzeClearance(text) {
 }
 
 function buildResult() {
+  const detailPane = getDetailPane();
   const description = normalize(getJobDescription());
-  const title = normalize(textFromFirst(TITLE_SELECTORS));
-  const company = normalize(textFromFirst(COMPANY_SELECTORS));
+  const title = normalize(
+    textFromFirstWithin(detailPane, TITLE_SELECTORS) ||
+      textFromFirst(TITLE_SELECTORS)
+  );
+  const company = normalize(
+    textFromFirstWithin(detailPane, COMPANY_SELECTORS) ||
+      textFromFirst(COMPANY_SELECTORS)
+  );
 
   if (!description) {
     return {
