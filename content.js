@@ -133,7 +133,46 @@ function textFromFirstWithin(root, selectors) {
   return "";
 }
 
+function getDescriptionElement() {
+  const candidates = [];
+
+  for (const selector of DESCRIPTION_SELECTORS) {
+    document.querySelectorAll(selector).forEach((element) => {
+      const text = normalize(element.innerText);
+      const rect = element.getBoundingClientRect();
+      if (
+        text.length >= 40 &&
+        rect.width > 0 &&
+        rect.height > 0 &&
+        !element.closest(
+          ".scaffold-layout__list, .jobs-search-results-list, .jobs-search-results-list__list"
+        )
+      ) {
+        candidates.push({ element, text, rect });
+      }
+    });
+  }
+
+  candidates.sort((left, right) => {
+    const rightSideDifference = right.rect.left - left.rect.left;
+    if (Math.abs(rightSideDifference) > 40) {
+      return rightSideDifference;
+    }
+    return right.text.length - left.text.length;
+  });
+
+  return candidates[0]?.element || null;
+}
+
 function getDetailPane() {
+  const descriptionElement = getDescriptionElement();
+  if (descriptionElement) {
+    return (
+      descriptionElement.closest(DETAIL_PANE_SELECTORS.join(", ")) ||
+      descriptionElement.parentElement
+    );
+  }
+
   for (const selector of DETAIL_PANE_SELECTORS) {
     const candidates = [...document.querySelectorAll(selector)].filter(
       (element) => normalize(element.innerText).length >= 120
@@ -262,18 +301,16 @@ function updateListingBadge(result) {
 }
 
 function getJobDescription() {
-  const detailPane = getDetailPane();
-  if (!detailPane) {
-    return "";
+  const descriptionElement = getDescriptionElement();
+  if (descriptionElement) {
+    return normalize(descriptionElement.innerText);
   }
 
-  const preferred = textFromFirstWithin(detailPane, DESCRIPTION_SELECTORS);
-  if (preferred.length >= 120) {
-    return preferred;
-  }
+  const detailPane = getDetailPane();
+  if (!detailPane) return "";
 
   const detailText = normalize(detailPane.innerText);
-  return detailText.length >= 120 ? detailText : "";
+  return detailText.length >= 40 ? detailText : "";
 }
 
 function normalize(text) {
