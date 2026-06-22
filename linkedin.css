@@ -4,12 +4,12 @@
 }
 
 .cc-clearance-ribbon {
-  display: inline-flex !important;
+  display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   width: max-content !important;
   max-width: 150px !important;
-  margin: 5px 0 3px 8px !important;
+  margin: 3px 0 6px 0 !important;
   padding: 4px 10px !important;
   border: 1px solid #7f1d1d !important;
   border-radius: 4px !important;

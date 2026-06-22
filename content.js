@@ -18,6 +18,15 @@
     ".job-details-module"
   ];
 
+  const DETAIL_PANE_SELECTORS = [
+    ".jobs-search__job-details--container",
+    ".jobs-search__job-details",
+    ".scaffold-layout__detail",
+    ".job-view-layout",
+    "[data-view-name*='job-details']",
+    "#job-details"
+  ];
+
   const TITLE_SELECTORS = [
     ".job-details-jobs-unified-top-card__job-title h1",
     ".jobs-unified-top-card__job-title",
@@ -119,15 +128,65 @@
     return "";
   }
 
-  function textFromBest(selectors) {
+  function textFromFirstWithin(root, selectors) {
+    if (!root) return "";
+    for (const selector of selectors) {
+      const text = normalize(root.querySelector(selector)?.innerText);
+      if (text) return text;
+    }
+    return "";
+  }
+
+  function textFromBestWithin(root, selectors) {
+    if (!root) return "";
     const candidates = [];
     for (const selector of selectors) {
-      document.querySelectorAll(selector).forEach((element) => {
+      root.querySelectorAll(selector).forEach((element) => {
         const text = normalize(element.innerText);
         if (text.length >= 120) candidates.push(text);
       });
     }
     return candidates.sort((left, right) => right.length - left.length)[0] || "";
+  }
+
+  function getCurrentJobId() {
+    const url = new URL(location.href);
+    return (
+      url.searchParams.get("currentJobId") ||
+      url.pathname.match(/\/jobs\/view\/(\d+)/)?.[1] ||
+      ""
+    );
+  }
+
+  function jobIdFromLink(link) {
+    if (!link) return "";
+    try {
+      const url = new URL(link.href, location.origin);
+      return (
+        url.searchParams.get("currentJobId") ||
+        url.pathname.match(/\/jobs\/view\/(\d+)/)?.[1] ||
+        ""
+      );
+    } catch {
+      return "";
+    }
+  }
+
+  function getDetailPane() {
+    for (const selector of DETAIL_PANE_SELECTORS) {
+      const candidates = [...document.querySelectorAll(selector)].filter(
+        (element) => normalize(element.innerText).length >= 120
+      );
+      if (candidates.length) {
+        return candidates.sort((left, right) => {
+          const leftRect = left.getBoundingClientRect();
+          const rightRect = right.getBoundingClientRect();
+          return rightRect.left - leftRect.left;
+        })[0];
+      }
+    }
+
+    return null;
   }
 
   function findMatches(text, patterns) {
@@ -166,6 +225,14 @@
         status: "not_required",
         matches: notRequiredMatches,
         criticalMatches: []
+      };
+    }
+
+    if (criticalMatches.length) {
+      return {
+        status: "required",
+        matches: criticalMatches,
+        criticalMatches
       };
     }
 
@@ -208,31 +275,33 @@
   }
 
   function getJobDescription() {
-    const preferred = textFromBest(DESCRIPTION_SELECTORS);
+    const detailPane = getDetailPane();
+    if (!detailPane) return "";
+
+    const preferred = textFromBestWithin(detailPane, DESCRIPTION_SELECTORS);
     if (preferred.length >= 120) return preferred;
 
-    const detailsRoot =
-      document.querySelector("[data-view-name*='job-details']") ||
-      document.querySelector("main article") ||
-      document.querySelector("main");
-    const mainText = normalize(detailsRoot?.innerText);
-    return mainText.length >= 120 ? mainText : "";
+    const paneText = normalize(detailPane.innerText);
+    return paneText.length >= 120 ? paneText : "";
   }
 
   function findActiveListingCard() {
+    const jobId = getCurrentJobId();
+    if (jobId) {
+      for (const link of document.querySelectorAll("a[href*='/jobs/']")) {
+        if (jobIdFromLink(link) === jobId) {
+          return (
+            link.closest(
+              ".jobs-search-results__list-item, .scaffold-layout__list-item, li"
+            ) || link
+          );
+        }
+      }
+    }
+
     for (const selector of ACTIVE_LISTING_SELECTORS) {
       const element = document.querySelector(selector);
       if (element) return element.closest("li") || element;
-    }
-
-    const jobId =
-      new URL(location.href).searchParams.get("currentJobId") ||
-      location.pathname.match(/\/jobs\/view\/(\d+)/)?.[1];
-    if (jobId) {
-      const jobLink = document.querySelector(
-        `a[href*="/jobs/view/${CSS.escape(jobId)}"]`
-      );
-      if (jobLink) return jobLink.closest("li") || jobLink;
     }
     return null;
   }
@@ -284,16 +353,8 @@
       return;
     }
 
-    let badgeText = "CLEARANCE";
+    const badgeText = "CLEARANCE";
     const isCritical = result.criticalMatches.length > 0;
-    if (isCritical) {
-      const first = result.criticalMatches[0].toUpperCase();
-      badgeText = first.includes("POLY")
-        ? "POLYGRAPH"
-        : first.includes("TS") || first.includes("TOP SECRET")
-          ? "TS / SCI"
-          : "CLEARANCE";
-    }
 
     const current = titleElement.querySelector(
       ":scope > .cc-clearance-ribbon"
@@ -316,9 +377,16 @@
   }
 
   function buildResult() {
+    const detailPane = getDetailPane();
     const description = normalize(getJobDescription());
-    const title = normalize(textFromFirst(TITLE_SELECTORS));
-    const company = normalize(textFromFirst(COMPANY_SELECTORS));
+    const title = normalize(
+      textFromFirstWithin(detailPane, TITLE_SELECTORS) ||
+        textFromFirst(TITLE_SELECTORS)
+    );
+    const company = normalize(
+      textFromFirstWithin(detailPane, COMPANY_SELECTORS) ||
+        textFromFirst(COMPANY_SELECTORS)
+    );
 
     if (!description) {
       return {
@@ -336,6 +404,7 @@
       ...analyzeClearance(description),
       title,
       company,
+      jobId: getCurrentJobId(),
       url: location.href,
       scannedAt: new Date().toISOString()
     };
