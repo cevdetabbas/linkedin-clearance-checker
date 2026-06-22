@@ -1,18 +1,13 @@
-async function enableActionClickPanel() {
+async function configureSidePanel() {
   try {
-    if (!chrome.sidePanel?.setPanelBehavior) {
-      console.warn("Bu Chrome sürümü sidePanel davranış API'sini desteklemiyor.");
-      return;
-    }
-
     await chrome.sidePanel.setPanelBehavior({
       openPanelOnActionClick: true
     });
   } catch (error) {
-    console.error("Side panel ayarlanamadı:", error);
+    console.error("Could not configure the side panel:", error);
   }
 }
 
-chrome.runtime.onInstalled?.addListener(enableActionClickPanel);
-chrome.runtime.onStartup?.addListener(enableActionClickPanel);
-enableActionClickPanel();
+chrome.runtime.onInstalled.addListener(configureSidePanel);
+chrome.runtime.onStartup.addListener(configureSidePanel);
+configureSidePanel();

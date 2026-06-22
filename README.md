@@ -1,46 +1,42 @@
 # LinkedIn Clearance Check
 
-LinkedIn iş ilanı açıklamasını yerel olarak tarayan basit bir Chrome
-Manifest V3 uzantısıdır. Chrome'un native sağ panelinde şu sonuçlardan
-birini gösterir:
+A small Chrome extension that reads the selected LinkedIn job's **About the
+job** section and warns only when the description contains an actual
+security-clearance requirement.
 
-- Clearance gerekiyor
-- Clearance alınabilmeli
-- Clearance gerekmiyor
-- Elle kontrol et
-- Clearance belirtilmemiş
+## What counts as a warning
 
-## Kurulum
+- An active/current Secret, Top Secret, or TS/SCI clearance
+- A clearance explicitly marked required or mandatory
+- A requirement to obtain or maintain a clearance
+- A required polygraph
 
-1. Chrome'da `chrome://extensions` adresini aç.
-2. Sağ üstten **Developer mode / Geliştirici modu** seçeneğini aç.
-3. **Load unpacked / Paketlenmemiş öğe yükle** düğmesine bas.
-4. Bu `linkedin-clearance-checker` klasörünü seç.
-5. LinkedIn'de bir iş ilanı aç.
-6. Chrome araç çubuğundaki uzantı ikonuna tıkla. Panel sağda açılır.
+General words such as `security`, `cybersecurity`, `SOC`, `background check`,
+`NIST`, or `incident response` do not create a red warning.
 
-İlanlar arasında geçtikçe panel otomatik güncellenir. Gerekirse
-**Yeniden tara** düğmesini kullan.
+## Install in Chrome
 
-## Autofill
+1. Open `chrome://extensions`.
+2. Turn on **Developer mode**.
+3. Click **Load unpacked**.
+4. Select this `linkedin-clearance-checker` folder.
+5. Open LinkedIn Jobs and click the extension icon to open its side panel.
 
-Yan paneldeki cevap bankasında form alanı ile cevabını eşleştirebilirsin.
-**Açık formu doldur** düğmesi metin alanlarını, textarea alanlarını,
-native dropdown'ları, radio seçeneklerini ve checkbox'ları doldurur.
-Formu otomatik olarak göndermez.
+After changing the source, use **Reload extension** in the side panel or the
+reload button on `chrome://extensions`.
 
-**Formdan öğren** düğmesi açık formdaki doldurulmuş güvenli alanları cevap
-bankasına kaydeder. Şifre, dosya yükleme, kart güvenlik kodu ve benzeri
-hassas alanlar kaydedilmez.
+## Behavior
 
-## Gizlilik
+- The selected job description is rescanned automatically as LinkedIn changes
+  jobs without a full page reload.
+- A red diagonal label is added to the selected job card only for an explicit
+  requirement.
+- Ambiguous mentions appear as **Mentioned — review manually** in the side
+  panel but do not create a red label.
+- All processing happens locally in the browser.
 
-İlan metni yalnızca tarayıcı içinde analiz edilir. Harici API veya sunucu
-kullanılmaz.
+## Test
 
-## Sınırlar
-
-LinkedIn zaman zaman sayfa yapısını değiştirir. Böyle bir durumda
-`content.js` içindeki seçicilerin güncellenmesi gerekebilir. Sonuç,
-anahtar kelime tabanlı hızlı bir kontroldür; kesin hukuki veya işveren
-kararı değildir.
+```powershell
+node tests/detector.test.js
+```

@@ -9,67 +9,46 @@ const companyName = document.querySelector("#companyName");
 const matchesCard = document.querySelector("#matchesCard");
 const matchesList = document.querySelector("#matchesList");
 const refreshButton = document.querySelector("#refreshButton");
-const autofillRows = document.querySelector("#autofillRows");
-const addAutofillRow = document.querySelector("#addAutofillRow");
-const fillFormButton = document.querySelector("#fillFormButton");
-const learnFormButton = document.querySelector("#learnFormButton");
-const autofillResult = document.querySelector("#autofillResult");
-
-const AUTOFILL_STORAGE_KEY = "autofillEntries";
-const DEFAULT_AUTOFILL_ENTRIES = [
-  { key: "First Name", value: "" },
-  { key: "Last Name", value: "" },
-  { key: "Email", value: "" },
-  { key: "Phone", value: "" }
-];
-
-let autofillEntries = [];
-let saveAutofillTimer;
+const reloadButton = document.querySelector("#reloadButton");
 
 const STATUS_COPY = {
   required: {
-    label: "Clearance gerekiyor",
-    message:
-      "İlanda mevcut veya belirli seviyede security clearance şartı bulundu."
+    label: "Clearance required",
+    message: "The job explicitly requires an existing security clearance."
   },
   obtainable: {
-    label: "Clearance alınabilmeli",
-    message:
-      "Başlangıçta aktif clearance şart olmayabilir; fakat adayın clearance alabilmesi veya uygun olması bekleniyor."
+    label: "Must be able to obtain clearance",
+    message: "The job requires eligibility or the ability to obtain a clearance."
   },
   not_required: {
-    label: "Clearance gerekmiyor",
-    message: "İlanda clearance gerekmediğini açıkça söyleyen bir ifade bulundu."
+    label: "Clearance not required",
+    message: "The description explicitly says a clearance is not required."
   },
   review: {
-    label: "Elle kontrol et",
-    message:
-      "Clearance veya benzer bir güvenlik incelemesi geçiyor, fakat şart olup olmadığı net değil."
+    label: "Mentioned — review manually",
+    message: "A clearance term appears, but the text does not clearly make it a requirement."
   },
   not_mentioned: {
-    label: "Clearance belirtilmemiş",
-    message:
-      "Açık ilan açıklamasında bilinen bir security clearance ifadesi bulunmadı."
+    label: "No clearance requirement",
+    message: "No explicit clearance requirement was found in the selected job description."
   },
   no_job: {
-    label: "LinkedIn ilanı aç",
-    message:
-      "Bir LinkedIn iş ilanı açtığında burada clearance sonucu görünecek."
+    label: "Open a LinkedIn job",
+    message: "Select a job on LinkedIn to check its About the job section."
   },
   loading: {
-    label: "İlan okunuyor…",
-    message: "Açık LinkedIn ilanındaki açıklamayı tarıyorum."
+    label: "Reading job…",
+    message: "Waiting for the selected job description to load."
   },
   error: {
-    label: "İlan okunamadı",
-    message:
-      "LinkedIn sayfasını yenile veya bir ilan açıp “Yeniden tara” düğmesine bas."
+    label: "Could not read this job",
+    message: "Reload LinkedIn, select a job, and scan again."
   }
 };
 
 function setStatus(status, customMessage) {
   const copy = STATUS_COPY[status] || STATUS_COPY.error;
-  statusCard.className = `card state-${status.replace("_", "-")}`;
+  statusCard.className = `card state-${status.replaceAll("_", "-")}`;
   statusLabel.textContent = copy.label;
   statusMessage.textContent = customMessage || copy.message;
 }
@@ -78,7 +57,7 @@ function renderResult(result) {
   setStatus(result.status, result.message);
 
   criticalMatches.replaceChildren();
-  if (Array.isArray(result.criticalMatches) && result.criticalMatches.length > 0) {
+  if (result.criticalMatches?.length) {
     for (const match of result.criticalMatches) {
       const item = document.createElement("li");
       item.textContent = match;
@@ -90,7 +69,7 @@ function renderResult(result) {
   }
 
   if (result.title || result.company) {
-    jobTitle.textContent = result.title || "LinkedIn iş ilanı";
+    jobTitle.textContent = result.title || "LinkedIn job";
     companyName.textContent = result.company || "";
     jobCard.classList.remove("hidden");
   } else {
@@ -98,7 +77,7 @@ function renderResult(result) {
   }
 
   matchesList.replaceChildren();
-  if (Array.isArray(result.matches) && result.matches.length > 0) {
+  if (result.matches?.length) {
     for (const match of result.matches) {
       const item = document.createElement("li");
       item.textContent = match;
@@ -110,259 +89,16 @@ function renderResult(result) {
   }
 }
 
-function setAutofillResult(message = "", type = "") {
-  autofillResult.textContent = message;
-  autofillResult.className = "autofill-result";
-  if (type) {
-    autofillResult.classList.add(`is-${type}`);
-  }
-}
-
-function cleanAutofillEntries(entries) {
-  return entries
-    .map((entry) => ({
-      key: String(entry?.key || "").trim(),
-      value: String(entry?.value || "").trim()
-    }))
-    .filter((entry) => entry.key || entry.value);
-}
-
-async function persistAutofillEntries() {
-  await chrome.storage.local.set({
-    [AUTOFILL_STORAGE_KEY]: autofillEntries
-  });
-}
-
-function saveAutofillEntries() {
-  clearTimeout(saveAutofillTimer);
-  saveAutofillTimer = setTimeout(async () => {
-    await persistAutofillEntries();
-    setAutofillResult("Cevaplar tarayıcıya kaydedildi.", "success");
-  }, 350);
-}
-
-function createAutofillInput(value, placeholder, onInput) {
-  const input = document.createElement("input");
-  input.className = "autofill-input";
-  input.type = "text";
-  input.value = value;
-  input.placeholder = placeholder;
-  input.autocomplete = "off";
-  input.addEventListener("input", onInput);
-  return input;
-}
-
-function renderAutofillRows() {
-  autofillRows.replaceChildren();
-
-  autofillEntries.forEach((entry, index) => {
-    const row = document.createElement("div");
-    row.className = "autofill-row";
-
-    const keyInput = createAutofillInput(
-      entry.key,
-      "First Name",
-      (event) => {
-        autofillEntries[index].key = event.target.value;
-        saveAutofillEntries();
-      }
-    );
-
-    const valueInput = createAutofillInput(
-      entry.value,
-      "Cevabın",
-      (event) => {
-        autofillEntries[index].value = event.target.value;
-        saveAutofillEntries();
-      }
-    );
-
-    const deleteButton = document.createElement("button");
-    deleteButton.className = "delete-row";
-    deleteButton.type = "button";
-    deleteButton.title = "Satırı sil";
-    deleteButton.setAttribute("aria-label", "Satırı sil");
-    deleteButton.textContent = "×";
-    deleteButton.addEventListener("click", () => {
-      autofillEntries.splice(index, 1);
-      renderAutofillRows();
-      saveAutofillEntries();
-    });
-
-    row.append(keyInput, valueInput, deleteButton);
-    autofillRows.append(row);
-  });
-}
-
-async function loadAutofillEntries() {
-  const stored = await chrome.storage.local.get(AUTOFILL_STORAGE_KEY);
-  const savedEntries = stored[AUTOFILL_STORAGE_KEY];
-  autofillEntries =
-    Array.isArray(savedEntries) && savedEntries.length > 0
-      ? savedEntries
-      : structuredClone(DEFAULT_AUTOFILL_ENTRIES);
-  renderAutofillRows();
-}
-
-async function fillOpenForm() {
-  const entries = cleanAutofillEntries(autofillEntries);
-  if (entries.length === 0) {
-    setAutofillResult("Önce en az bir alan ve cevap ekle.", "error");
-    return;
-  }
-
-  fillFormButton.disabled = true;
-  setAutofillResult("Form alanları aranıyor…");
-
-  try {
-    const tab = await getActiveTab();
-    if (!tab?.id) {
-      throw new Error("Aktif sekme bulunamadı.");
-    }
-
-    const result = await sendMessageWithInjection(tab, {
-      type: "AUTOFILL_FORM",
-      entries
-    });
-
-    if (!result) {
-      throw new Error("Bu sayfadaki forma erişilemedi.");
-    }
-
-    const detail = result.matchedKeys?.length
-      ? ` Eşleşenler: ${result.matchedKeys.join(", ")}`
-      : "";
-
-    if (result.filledCount > 0) {
-      setAutofillResult(
-        `${result.filledCount} alan dolduruldu.${detail}`,
-        "success"
-      );
-    } else {
-      setAutofillResult(
-        "Cevap bankasıyla eşleşen boş bir alan bulunamadı.",
-        "error"
-      );
-    }
-  } catch (error) {
-    console.error(error);
-    setAutofillResult(
-      "Form doldurulamadı. Sayfayı yenileyip tekrar dene.",
-      "error"
-    );
-  } finally {
-    fillFormButton.disabled = false;
-  }
-}
-
-function normalizeEntryKey(text) {
-  return String(text || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function mergeLearnedEntries(learnedEntries) {
-  let added = 0;
-  let updated = 0;
-
-  for (const learned of learnedEntries) {
-    const normalizedKey = normalizeEntryKey(learned.key);
-    if (!normalizedKey || !String(learned.value || "").trim()) {
-      continue;
-    }
-
-    const existing = autofillEntries.find(
-      (entry) => normalizeEntryKey(entry.key) === normalizedKey
-    );
-
-    if (existing) {
-      if (existing.value !== learned.value) {
-        existing.value = learned.value;
-        updated += 1;
-      }
-    } else {
-      autofillEntries.push({
-        key: learned.key,
-        value: learned.value
-      });
-      added += 1;
-    }
-  }
-
-  return { added, updated };
-}
-
-async function learnOpenForm() {
-  learnFormButton.disabled = true;
-  fillFormButton.disabled = true;
-  setAutofillResult("Doldurulmuş alanlar okunuyor…");
-
-  try {
-    const tab = await getActiveTab();
-    if (!tab?.id) {
-      throw new Error("Aktif sekme bulunamadı.");
-    }
-
-    const result = await sendMessageWithInjection(tab, {
-      type: "LEARN_FORM"
-    });
-
-    if (!result || !Array.isArray(result.entries)) {
-      throw new Error("Bu sayfadaki forma erişilemedi.");
-    }
-
-    if (result.entries.length === 0) {
-      setAutofillResult(
-        "Kaydedilebilecek dolu bir form alanı bulunamadı.",
-        "error"
-      );
-      return;
-    }
-
-    const { added, updated } = mergeLearnedEntries(result.entries);
-    renderAutofillRows();
-    await persistAutofillEntries();
-
-    const unchanged = result.entries.length - added - updated;
-    const parts = [];
-    if (added) parts.push(`${added} yeni`);
-    if (updated) parts.push(`${updated} güncellendi`);
-    if (unchanged) parts.push(`${unchanged} zaten kayıtlı`);
-
-    setAutofillResult(
-      `${result.entries.length} cevap öğrenildi: ${parts.join(", ")}.`,
-      "success"
-    );
-  } catch (error) {
-    console.error(error);
-    setAutofillResult(
-      "Form okunamadı. Sayfayı yenileyip tekrar dene.",
-      "error"
-    );
-  } finally {
-    learnFormButton.disabled = false;
-    fillFormButton.disabled = false;
-  }
-}
-
-async function getActiveTab() {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true
-  });
+async function activeTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
 
-async function sendMessageWithInjection(tab, message) {
+async function sendWithInjection(tab, message) {
   try {
     return await chrome.tabs.sendMessage(tab.id, message);
-  } catch (firstError) {
-    if (!tab.url?.startsWith("https://www.linkedin.com/")) {
-      throw firstError;
-    }
+  } catch (error) {
+    if (!tab.url?.startsWith("https://www.linkedin.com/jobs/")) throw error;
 
     await chrome.scripting.insertCSS({
       target: { tabId: tab.id },
@@ -370,7 +106,7 @@ async function sendMessageWithInjection(tab, message) {
     });
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["content.js"]
+      files: ["clearance-detector.js", "content.js"]
     });
     return chrome.tabs.sendMessage(tab.id, message);
   }
@@ -381,21 +117,16 @@ async function requestScan() {
   setStatus("loading");
 
   try {
-    const tab = await getActiveTab();
+    const tab = await activeTab();
     if (!tab?.id || !tab.url?.startsWith("https://www.linkedin.com/jobs/")) {
-      renderResult({ status: "no_job", matches: [] });
+      renderResult({ status: "no_job", matches: [], criticalMatches: [] });
       return;
     }
 
-    const result = await sendMessageWithInjection(tab, {
+    const result = await sendWithInjection(tab, {
       type: "REQUEST_CLEARANCE_SCAN"
     });
-
-    if (result) {
-      renderResult(result);
-    } else {
-      setStatus("error");
-    }
+    renderResult(result || { status: "error" });
   } catch (error) {
     console.error(error);
     setStatus("error");
@@ -404,29 +135,19 @@ async function requestScan() {
   }
 }
 
-chrome.runtime.onMessage?.addListener((message) => {
+chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === "CLEARANCE_RESULT" && message.result) {
     renderResult(message.result);
   }
 });
 
-chrome.tabs.onActivated?.addListener(requestScan);
-chrome.tabs.onUpdated?.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onActivated.addListener(requestScan);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.active && (changeInfo.status === "complete" || changeInfo.url)) {
     requestScan();
   }
 });
 
 refreshButton.addEventListener("click", requestScan);
-addAutofillRow.addEventListener("click", () => {
-  autofillEntries.push({ key: "", value: "" });
-  renderAutofillRows();
-  saveAutofillEntries();
-  const inputs = autofillRows.querySelectorAll(".autofill-input");
-  inputs[inputs.length - 2]?.focus();
-});
-fillFormButton.addEventListener("click", fillOpenForm);
-learnFormButton.addEventListener("click", learnOpenForm);
-
-loadAutofillEntries().catch(console.error);
+reloadButton.addEventListener("click", () => chrome.runtime.reload());
 requestScan();

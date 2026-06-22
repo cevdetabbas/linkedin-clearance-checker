@@ -1,12 +1,11 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Clearance Check",
-  "version": "0.6.5",
-  "description": "LinkedIn iş ilanlarında security clearance gereksinimini sağ panelde gösterir.",
+  "version": "0.7.0",
+  "description": "Checks the selected LinkedIn job description for real security-clearance requirements.",
   "permissions": [
     "sidePanel",
     "tabs",
-    "storage",
     "scripting"
   ],
   "host_permissions": [
@@ -16,7 +15,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Clearance panelini aç"
+    "default_title": "Open Clearance Check"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
@@ -27,6 +26,7 @@
         "https://www.linkedin.com/jobs/*"
       ],
       "js": [
+        "clearance-detector.js",
         "content.js"
       ],
       "css": [
