@@ -1,29 +1,46 @@
 # LinkedIn Clearance Check
 
-A Chrome Manifest V3 extension that scans LinkedIn job descriptions for
-security clearance requirements and displays the result in Chrome's side
-panel.
+LinkedIn iş ilanı açıklamasını yerel olarak tarayan basit bir Chrome
+Manifest V3 uzantısıdır. Chrome'un native sağ panelinde şu sonuçlardan
+birini gösterir:
 
-Possible results:
+- Clearance gerekiyor
+- Clearance alınabilmeli
+- Clearance gerekmiyor
+- Elle kontrol et
+- Clearance belirtilmemiş
 
-- Clearance required
-- Must be able to obtain clearance
-- Clearance not required
-- Review manually
-- Clearance not mentioned
+## Kurulum
 
-Strong phrases such as TS/SCI, Top Secret, and polygraph trigger a prominent
-red warning in the side panel. Selected jobs that require clearance also
-receive a tilted red badge in the left-hand job list.
+1. Chrome'da `chrome://extensions` adresini aç.
+2. Sağ üstten **Developer mode / Geliştirici modu** seçeneğini aç.
+3. **Load unpacked / Paketlenmemiş öğe yükle** düğmesine bas.
+4. Bu `linkedin-clearance-checker` klasörünü seç.
+5. LinkedIn'de bir iş ilanı aç.
+6. Chrome araç çubuğundaki uzantı ikonuna tıkla. Panel sağda açılır.
 
-## Installation
+İlanlar arasında geçtikçe panel otomatik güncellenir. Gerekirse
+**Yeniden tara** düğmesini kullan.
 
-1. Open `chrome://extensions` in Chrome.
-2. Enable **Developer mode**.
-3. Click **Load unpacked**.
-4. Select the `linkedin-clearance-checker` folder.
-5. Open a LinkedIn job listing.
-6. Click the extension icon to open the side panel.
+## Autofill
 
-All analysis runs locally in the browser. Job listing data is not sent to an
-external server.
+Yan paneldeki cevap bankasında form alanı ile cevabını eşleştirebilirsin.
+**Açık formu doldur** düğmesi metin alanlarını, textarea alanlarını,
+native dropdown'ları, radio seçeneklerini ve checkbox'ları doldurur.
+Formu otomatik olarak göndermez.
+
+**Formdan öğren** düğmesi açık formdaki doldurulmuş güvenli alanları cevap
+bankasına kaydeder. Şifre, dosya yükleme, kart güvenlik kodu ve benzeri
+hassas alanlar kaydedilmez.
+
+## Gizlilik
+
+İlan metni yalnızca tarayıcı içinde analiz edilir. Harici API veya sunucu
+kullanılmaz.
+
+## Sınırlar
+
+LinkedIn zaman zaman sayfa yapısını değiştirir. Böyle bir durumda
+`content.js` içindeki seçicilerin güncellenmesi gerekebilir. Sonuç,
+anahtar kelime tabanlı hızlı bir kontroldür; kesin hukuki veya işveren
+kararı değildir.

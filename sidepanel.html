@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,7 +11,7 @@
       <header class="header">
         <div class="logo" aria-hidden="true">CC</div>
         <div>
-          <p class="eyebrow">LINKEDIN ASSISTANT</p>
+          <p class="eyebrow">LINKEDIN YARDIMCISI</p>
           <h1>Clearance Check</h1>
         </div>
       </header>
@@ -19,52 +19,90 @@
       <section id="statusCard" class="card state-loading" aria-live="polite">
         <div class="status-row">
           <span id="statusDot" class="status-dot"></span>
-          <span id="statusLabel" class="status-label">Reading job listing…</span>
+          <span id="statusLabel" class="status-label">İlan okunuyor…</span>
         </div>
         <p id="statusMessage" class="status-message">
-          Scanning the open LinkedIn job description.
+          Açık LinkedIn ilanındaki açıklamayı tarıyorum.
         </p>
       </section>
 
       <section id="criticalAlert" class="critical-alert hidden" aria-live="assertive">
         <div class="critical-alert__heading">
           <span class="critical-alert__icon" aria-hidden="true">!</span>
-          <strong>WARNING: High-level security requirement</strong>
+          <strong>DİKKAT: Yüksek seviye güvenlik şartı</strong>
         </div>
         <p>
-          A strong clearance or polygraph requirement was found.
+          İlanda güçlü bir clearance veya polygraph ifadesi bulundu.
         </p>
         <ul id="criticalMatches" class="critical-matches"></ul>
       </section>
 
       <section id="jobCard" class="card details hidden">
-        <p class="section-label">OPEN JOB</p>
-        <h2 id="jobTitle">Job listing</h2>
+        <p class="section-label">AÇIK İLAN</p>
+        <h2 id="jobTitle">İş ilanı</h2>
         <p id="companyName" class="company"></p>
       </section>
 
       <section id="matchesCard" class="card hidden">
-        <p class="section-label">MATCHED PHRASES</p>
+        <p class="section-label">BULUNAN İFADELER</p>
         <ul id="matchesList" class="matches"></ul>
       </section>
 
+      <section class="card autofill">
+        <div class="autofill-heading">
+          <div>
+            <p class="section-label">AUTOFILL CEVAP BANKASI</p>
+            <h2>Form cevaplarım</h2>
+          </div>
+          <button
+            id="addAutofillRow"
+            class="add-row"
+            type="button"
+            title="Yeni cevap ekle"
+            aria-label="Yeni cevap ekle"
+          >+</button>
+        </div>
+
+        <p class="autofill-help">
+          Solda formda aranacak alanı, sağda doldurulacak cevabı yaz.
+          Örnek: <strong>First Name</strong> → <strong>Ahmet</strong>
+        </p>
+
+        <div class="autofill-columns" aria-hidden="true">
+          <span>FORM ALANI</span>
+          <span>CEVABIM</span>
+          <span></span>
+        </div>
+
+        <div id="autofillRows" class="autofill-rows"></div>
+
+        <div class="autofill-actions">
+          <button id="learnFormButton" class="learn-form" type="button">
+            Formdan öğren
+          </button>
+          <button id="fillFormButton" class="fill-form" type="button">
+            Açık formu doldur
+          </button>
+        </div>
+        <p id="autofillResult" class="autofill-result" aria-live="polite"></p>
+      </section>
+
       <section class="card info">
-        <p class="section-label">HOW DOES IT WORK?</p>
+        <p class="section-label">NASIL ÇALIŞIR?</p>
         <p>
-          It scans the open job description locally for phrases such as
-          “Secret”, “Top Secret”, “TS/SCI”, and “ability to obtain”.
-          No data is sent to an external server.
+          Açık ilanın açıklamasında “Secret”, “Top Secret”, “TS/SCI”,
+          “ability to obtain” ve benzeri ifadeleri yerel olarak arar.
+          Veriler başka bir sunucuya gönderilmez.
         </p>
       </section>
 
-      <div class="action-row">
-        <button id="refreshButton" class="refresh" type="button">Scan again</button>
-        <button id="reloadButton" class="reload" type="button">Reload extension</button>
-      </div>
+      <button id="refreshButton" class="refresh" type="button">
+        Yeniden tara
+      </button>
 
       <p class="disclaimer">
-        This is a quick text check. Always review the full job listing before
-        applying.
+        Bu hızlı bir metin kontrolüdür. Başvurmadan önce ilanın tamamını
+        mutlaka doğrula.
       </p>
     </main>
 
