@@ -9,6 +9,7 @@ const companyName = document.querySelector("#companyName");
 const matchesCard = document.querySelector("#matchesCard");
 const matchesList = document.querySelector("#matchesList");
 const refreshButton = document.querySelector("#refreshButton");
+const reloadButton = document.querySelector("#reloadButton");
 
 const STATUS_COPY = {
   required: {
@@ -154,4 +155,9 @@ chrome.tabs.onUpdated?.addListener((tabId, changeInfo, tab) => {
 });
 
 refreshButton.addEventListener("click", requestScan);
+reloadButton.addEventListener("click", async () => {
+  reloadButton.disabled = true;
+  reloadButton.textContent = "Reloading…";
+  await chrome.runtime.sendMessage({ type: "RELOAD_EXTENSION" });
+});
 requestScan();

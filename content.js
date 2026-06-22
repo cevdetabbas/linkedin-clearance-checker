@@ -105,6 +105,7 @@
   };
 
   let lastSignature = "";
+  let lastPanelSignature = "";
   let scanTimer;
   let lastUrl = location.href;
 
@@ -274,6 +275,120 @@
     };
   }
 
+  const PANEL_COPY = {
+    required: [
+      "Clearance required",
+      "The selected job's description requires a security clearance."
+    ],
+    obtainable: [
+      "Must obtain clearance",
+      "The selected job requires eligibility to obtain a clearance."
+    ],
+    not_required: [
+      "Clearance not required",
+      "The selected job explicitly says clearance is not required."
+    ],
+    review: [
+      "Review manually",
+      "The selected job mentions a security review or clearance."
+    ],
+    not_mentioned: [
+      "Clearance not mentioned",
+      "No clearance requirement was found in the selected job description."
+    ],
+    error: [
+      "Waiting for job description",
+      "Select a job and wait for its description to load."
+    ]
+  };
+
+  function createAutoPanel() {
+    let panel = document.querySelector("#cc-auto-panel");
+    if (panel) return panel;
+
+    panel = document.createElement("aside");
+    panel.id = "cc-auto-panel";
+    panel.setAttribute("aria-label", "LinkedIn Clearance Check");
+    panel.innerHTML = `
+      <div class="cc-panel-header">
+        <span class="cc-panel-logo">CC</span>
+        <span class="cc-panel-title">Clearance Check</span>
+        <button class="cc-panel-collapse" type="button" title="Collapse">−</button>
+      </div>
+      <div class="cc-panel-body">
+        <div class="cc-panel-status" data-status="error">
+          <strong>Reading selected job…</strong>
+          <span>Scanning the description on the right.</span>
+        </div>
+        <div>
+          <div class="cc-panel-job">LinkedIn job listing</div>
+          <div class="cc-panel-company"></div>
+        </div>
+        <ul class="cc-panel-matches"></ul>
+        <div class="cc-panel-actions">
+          <button class="cc-panel-action cc-panel-scan" type="button">Scan again</button>
+          <button class="cc-panel-action cc-panel-action--reload cc-panel-reload" type="button">Reload extension</button>
+        </div>
+      </div>`;
+
+    panel
+      .querySelector(".cc-panel-collapse")
+      .addEventListener("click", () => {
+        panel.classList.toggle("cc-auto-panel--collapsed");
+        panel.querySelector(".cc-panel-collapse").textContent =
+          panel.classList.contains("cc-auto-panel--collapsed") ? "+" : "−";
+      });
+    panel
+      .querySelector(".cc-panel-scan")
+      .addEventListener("click", () => runScan({ notify: true, force: true }));
+    panel
+      .querySelector(".cc-panel-reload")
+      .addEventListener("click", () => {
+        panel.querySelector(".cc-panel-reload").textContent = "Reloading…";
+        chrome.runtime.sendMessage({ type: "RELOAD_EXTENSION" }).catch(() => {});
+      });
+
+    document.documentElement.append(panel);
+    return panel;
+  }
+
+  function renderAutoPanel(result, force = false) {
+    const panel = createAutoPanel();
+    const signature = JSON.stringify({
+      status: result.status,
+      title: result.title,
+      company: result.company,
+      jobId: result.jobId,
+      matches: result.matches,
+      criticalMatches: result.criticalMatches
+    });
+    if (!force && signature === lastPanelSignature) return;
+    lastPanelSignature = signature;
+
+    const [label, message] = PANEL_COPY[result.status] || PANEL_COPY.error;
+    const status = panel.querySelector(".cc-panel-status");
+    status.dataset.status = result.status;
+    status.querySelector("strong").textContent = label;
+    status.querySelector("span").textContent = result.message || message;
+    panel.querySelector(".cc-panel-job").textContent =
+      result.title || "LinkedIn job listing";
+    panel.querySelector(".cc-panel-company").textContent = result.company || "";
+
+    const matches = panel.querySelector(".cc-panel-matches");
+    matches.replaceChildren();
+    [...(result.criticalMatches || []), ...(result.matches || [])]
+      .filter(
+        (match, index, all) =>
+          match && all.findIndex((item) => item.toLowerCase() === match.toLowerCase()) === index
+      )
+      .slice(0, 5)
+      .forEach((match) => {
+        const item = document.createElement("li");
+        item.textContent = match;
+        matches.append(item);
+      });
+  }
+
   function getJobDescription() {
     const detailPane = getDetailPane();
     if (!detailPane) return "";
@@ -288,7 +403,19 @@
   function findActiveListingCard() {
     const jobId = getCurrentJobId();
     if (jobId) {
-      for (const link of document.querySelectorAll("a[href*='/jobs/']")) {
+      const listRoots = [
+        ...document.querySelectorAll(
+          ".scaffold-layout__list, .jobs-search-results-list, .jobs-search-results-list__list, [class*='jobs-search-results-list']"
+        )
+      ];
+      const listLinks = listRoots.flatMap((root) => [
+        ...root.querySelectorAll("a[href*='/jobs/']")
+      ]);
+      const candidateLinks = listLinks.length
+        ? listLinks
+        : [...document.querySelectorAll(".job-card-container__link")];
+
+      for (const link of candidateLinks) {
         if (jobIdFromLink(link) === jobId) {
           return (
             link.closest(
@@ -410,10 +537,19 @@
     };
   }
 
-  function runScan({ notify = false } = {}) {
+  function runScan({ notify = false, force = false } = {}) {
     const result = buildResult();
     updateListingBadge(result);
-    const signature = JSON.stringify(result);
+    renderAutoPanel(result, force);
+    const signature = JSON.stringify({
+      status: result.status,
+      title: result.title,
+      company: result.company,
+      jobId: result.jobId,
+      url: result.url,
+      matches: result.matches,
+      criticalMatches: result.criticalMatches
+    });
 
     if (notify && signature !== lastSignature) {
       lastSignature = signature;
@@ -449,7 +585,16 @@
 
   globalThis.__clearanceCheckerTest = { analyzeClearance };
 
-  const observer = new MutationObserver(scheduleScan);
+  const observer = new MutationObserver((mutations) => {
+    const onlyExtensionChanges = mutations.every((mutation) => {
+      const element =
+        mutation.target.nodeType === Node.ELEMENT_NODE
+          ? mutation.target
+          : mutation.target.parentElement;
+      return Boolean(element?.closest("#cc-auto-panel, .cc-clearance-ribbon"));
+    });
+    if (!onlyExtensionChanges) scheduleScan();
+  });
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
@@ -469,6 +614,7 @@
     window.removeEventListener("hashchange", scheduleScan);
     document.removeEventListener("click", checkForNavigation, true);
     clearInterval(navigationTimer);
+    document.querySelector("#cc-auto-panel")?.remove();
     try {
       chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
     } catch {

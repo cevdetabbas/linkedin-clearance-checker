@@ -253,6 +253,30 @@ h2 {
   box-shadow: 0 8px 18px rgba(10, 102, 194, 0.2);
 }
 
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.reload {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid rgba(31, 47, 76, 0.14);
+  border-radius: 11px;
+  background: #fff;
+  color: #34435d;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reload:hover {
+  border-color: #0a66c2;
+  color: #0a66c2;
+}
+
 .refresh:hover {
   background: #004f9e;
 }
