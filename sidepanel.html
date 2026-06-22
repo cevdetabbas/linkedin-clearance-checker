@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LinkedIn Clearance Check</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div class="logo" aria-hidden="true">CC</div>
+        <div>
+          <p class="eyebrow">LINKEDIN ASSISTANT</p>
+          <h1>Clearance Check</h1>
+        </div>
+      </header>
+
+      <section id="statusCard" class="card state-loading" aria-live="polite">
+        <div class="status-row">
+          <span id="statusDot" class="status-dot"></span>
+          <span id="statusLabel" class="status-label">Reading job listing…</span>
+        </div>
+        <p id="statusMessage" class="status-message">
+          Scanning the open LinkedIn job description.
+        </p>
+      </section>
+
+      <section id="criticalAlert" class="critical-alert hidden" aria-live="assertive">
+        <div class="critical-alert__heading">
+          <span class="critical-alert__icon" aria-hidden="true">!</span>
+          <strong>WARNING: High-level security requirement</strong>
+        </div>
+        <p>
+          A strong clearance or polygraph requirement was found.
+        </p>
+        <ul id="criticalMatches" class="critical-matches"></ul>
+      </section>
+
+      <section id="jobCard" class="card details hidden">
+        <p class="section-label">OPEN JOB</p>
+        <h2 id="jobTitle">Job listing</h2>
+        <p id="companyName" class="company"></p>
+      </section>
+
+      <section id="matchesCard" class="card hidden">
+        <p class="section-label">MATCHED PHRASES</p>
+        <ul id="matchesList" class="matches"></ul>
+      </section>
+
+      <section class="card info">
+        <p class="section-label">HOW DOES IT WORK?</p>
+        <p>
+          It scans the open job description locally for phrases such as
+          “Secret”, “Top Secret”, “TS/SCI”, and “ability to obtain”.
+          No data is sent to an external server.
+        </p>
+      </section>
+
+      <button id="refreshButton" class="refresh" type="button">
+        Scan again
+      </button>
+
+      <p class="disclaimer">
+        This is a quick text check. Always review the full job listing before
+        applying.
+      </p>
+    </main>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

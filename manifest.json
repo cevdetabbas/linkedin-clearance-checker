@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn Clearance Check",
+  "version": "1.0.1",
+  "description": "Detects security clearance requirements in LinkedIn job listings.",
+  "permissions": [
+    "sidePanel",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://www.linkedin.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Open clearance panel"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/jobs/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "linkedin.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
