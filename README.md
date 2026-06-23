@@ -31,6 +31,8 @@ reload button on `chrome://extensions`.
   jobs without a full page reload.
 - A red diagonal label is added to the selected job card only for an explicit
   requirement.
+- The toolbar's blue **L** icon changes to a solid red background while the
+  selected job has an explicit clearance requirement.
 - Ambiguous mentions appear as **Mentioned — review manually** in the side
   panel but do not create a red label.
 - All processing happens locally in the browser.
